@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTech CSE India — Complete Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0e;
+    --surface: #0d1a22;
+    --accent: #00e5ff;
+    --accent2: #a8ff3e;
+    --accent3: #ff5722;
+    --text: #e8f4f8;
+    --muted: #4a6572;
+    --card-bg: #0a1520;
+    --border: rgba(0,229,255,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: auto; }  /* JS handles easing — CSS smooth conflicts */
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
+
+  #progress { position:fixed; top:0; left:0; height:2px; background:var(--accent); z-index:1000; width:0%; box-shadow:0 0 8px var(--accent); transition:width 0.1s; }
+
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 48px;
+    background:rgba(5,10,14,0.92); backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.1em; color:var(--accent); }
+  .logo span { color:var(--text); }
+  .nav-links { display:flex; gap:28px; list-style:none; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; font-weight:500; letter-spacing:0.06em; transition:color 0.2s; }
+  .nav-links a:hover { color:var(--accent); }
+
+  /* ── Camera Gesture UI ── */
+  #cam-panel {
+    position:fixed; bottom:24px; right:24px; z-index:9000;
+    display:flex; flex-direction:column; align-items:flex-end; gap:10px;
+  }
+  #cam-box {
+    width:200px; height:150px; display:none;
+    border:1.5px solid var(--accent); border-radius:14px;
+    overflow:hidden; background:#000; position:relative;
+    box-shadow:0 0 28px rgba(0,229,255,0.25);
+  }
+  #webcam {
+    width:100%; height:100%; object-fit:cover;
+    transform:scaleX(-1); display:block;
+  }
+  #ov-canvas {
+    position:absolute; top:0; left:0;
+    width:100%; height:100%;
+    transform:scaleX(-1); pointer-events:none;
+  }
+  /* scanning line animation */
+  #cam-scan {
+    position:absolute; left:0; right:0; height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    opacity:0.6; animation:scan 2s linear infinite; display:none;
+  }
+  @keyframes scan { 0%{top:0%} 100%{top:100%} }
+  #cam-status {
+    font-family:'Space Mono',monospace; font-size:10px;
+    padding:5px 14px; border-radius:20px; white-space:nowrap;
+    background:rgba(0,229,255,0.07); border:1px solid var(--accent);
+    color:var(--accent); letter-spacing:0.08em;
+  }
+  #cam-btn {
+    font-family:'Space Mono',monospace; font-size:11px;
+    padding:9px 20px; border-radius:8px; cursor:pointer;
+    background:var(--surface); border:1.5px solid var(--accent);
+    color:var(--accent); letter-spacing:0.05em; transition:background 0.2s;
+  }
+  #cam-btn:hover { background:rgba(0,229,255,0.1); }
+  #cam-btn:disabled { opacity:0.5; cursor:default; }
+
+  /* direction indicator bars */
+  #dir-bar {
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    display:none; flex-direction:column; gap:4px; align-items:center;
+  }
+  .dir-arrow {
+    font-size:16px; opacity:0.2; transition:opacity 0.15s, transform 0.15s;
+  }
+  .dir-arrow.active { opacity:1; transform:scale(1.3); }
+
+  #gesture-flash {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    z-index:8000; pointer-events:none; text-align:center;
+    opacity:0; transition:opacity 0.15s;
+  }
+  #gesture-flash.show { opacity:1; }
+  #flash-icon { font-size:80px; display:block; }
+  #flash-text {
+    font-family:'Space Mono',monospace; font-size:16px;
+    color:var(--accent); letter-spacing:0.2em; margin-top:10px;
+    text-shadow:0 0 24px var(--accent);
+  }
+
+  /* ── Hero ── */
+  #hero {
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    padding:120px 48px 80px; position:relative; overflow:hidden;
+  }
+  .grid-bg {
+    position:absolute; inset:0;
+    background-image: linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+                      linear-gradient(90deg,rgba(0,229,255,0.04) 1px, transparent 1px);
+    background-size:60px 60px;
+    mask-image:radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+  }
+  .glow { position:absolute; width:700px; height:700px; background:radial-gradient(circle,rgba(0,229,255,0.06),transparent 70%); top:50%; left:50%; transform:translate(-50%,-50%); }
+  .hero-tag { font-family:'Space Mono',monospace; font-size:11px; color:var(--accent); letter-spacing:0.2em; margin-bottom:20px; opacity:0; animation:fadeUp 0.7s 0.2s forwards; }
+  h1.title { font-family:'Bebas Neue',sans-serif; font-size:clamp(60px,10vw,130px); line-height:0.9; letter-spacing:0.02em; margin-bottom:20px; opacity:0; animation:fadeUp 0.7s 0.4s forwards; }
+  h1.title em { color:var(--accent); font-style:normal; display:block; }
+  .sub { font-size:16px; color:var(--muted); max-width:540px; line-height:1.75; margin-bottom:40px; opacity:0; animation:fadeUp 0.7s 0.6s forwards; }
+  .stats { display:flex; gap:48px; opacity:0; animation:fadeUp 0.7s 0.8s forwards; }
+  .stat-n { font-family:'Bebas Neue',sans-serif; font-size:52px; color:var(--accent); line-height:1; }
+  .stat-l { font-size:11px; color:var(--muted); letter-spacing:0.1em; margin-top:2px; }
+  .scroll-hint { position:absolute; bottom:28px; left:50%; transform:translateX(-50%); font-family:'Space Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:0.15em; display:flex; flex-direction:column; align-items:center; gap:6px; animation:pulse 2s infinite; }
+  .scroll-line { width:1px; height:44px; background:linear-gradient(to bottom,var(--accent),transparent); }
+
+  /* ── Layout ── */
+  .section { padding:80px 48px; max-width:1300px; margin:0 auto; }
+  .section-alt { background:var(--surface); }
+  .section-alt > .inner { max-width:1300px; margin:0 auto; padding:80px 48px; }
+  .sec-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:52px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+  .sec-num { font-family:'Space Mono',monospace; font-size:11px; color:var(--accent); letter-spacing:0.15em; margin-bottom:6px; }
+  .sec-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5vw,62px); letter-spacing:0.04em; line-height:1; }
+  .sec-title em { color:var(--accent); font-style:normal; }
+
+  /* ── Cards ── */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:20px; }
+  .card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:26px; position:relative; overflow:hidden; transition:transform 0.3s, border-color 0.3s, box-shadow 0.3s; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform 0.4s; }
+  .card:hover { transform:translateY(-4px); border-color:var(--accent); box-shadow:0 16px 40px rgba(0,0,0,0.4); }
+  .card:hover::before { transform:scaleX(1); }
+  .card-icon { font-size:32px; margin-bottom:12px; display:block; }
+  .card-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.06em; margin-bottom:10px; }
+  .card-desc { font-size:13.5px; color:#7a9aaa; line-height:1.75; margin-bottom:16px; }
+  .lbl { font-family:'Space Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:8px; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .t { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); font-size:11px; padding:3px 10px; border-radius:4px; color:#8aaabb; }
+  .t-green { background:rgba(168,255,62,0.07); border-color:rgba(168,255,62,0.2); color:var(--accent2); }
+  .t-cyan  { background:rgba(0,229,255,0.07); border-color:rgba(0,229,255,0.2); color:var(--accent); }
+  hr.d { border:none; border-top:1px solid var(--border); margin:14px 0; }
+
+  /* ── Roadmap ── */
+  .roadmap { display:flex; flex-direction:column; }
+  .rm-item { display:flex; gap:24px; }
+  .rm-left { display:flex; flex-direction:column; align-items:center; }
+  .rm-dot { width:14px; height:14px; border-radius:50%; background:var(--accent); flex-shrink:0; box-shadow:0 0 10px var(--accent); margin-top:4px; }
+  .rm-line { width:2px; flex:1; background:var(--border); margin:4px 0; min-height:30px; }
+  .rm-body { padding-bottom:32px; }
+  .rm-year { font-family:'Space Mono',monospace; font-size:10px; color:var(--accent); letter-spacing:0.1em; margin-bottom:4px; }
+  .rm-t { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.06em; margin-bottom:6px; }
+  .rm-d { font-size:13px; color:var(--muted); line-height:1.7; }
+
+  /* ── After B.Tech ── */
+  .after-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:18px; }
+  .ac { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:22px; transition:border-color 0.3s,transform 0.3s; }
+  .ac:hover { border-color:var(--accent2); transform:translateY(-3px); }
+  .ac-icon { font-size:26px; margin-bottom:10px; }
+  .ac-title { font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:0.06em; margin-bottom:8px; color:var(--accent2); }
+  .ac-desc { font-size:13px; color:var(--muted); line-height:1.7; }
+
+  footer { text-align:center; padding:48px; border-top:1px solid var(--border); color:var(--muted); font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.08em; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  @media(max-width:768px) {
+    nav { padding:12px 20px; } .nav-links { display:none; }
+    .section { padding:60px 20px; } .section-alt > .inner { padding:60px 20px; }
+    .cards, .after-grid { grid-template-columns:1fr; }
+    .stats { gap:20px; } #cam-box { width:130px; height:97px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- Camera Gesture Panel -->
+<div id="cam-panel">
+  <div id="cam-box">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="ov-canvas"></canvas>
+    <div id="cam-scan"></div>
+    <div id="dir-bar">
+      <div class="dir-arrow" id="da-up">▲</div>
+      <div class="dir-arrow" id="da-dn">▼</div>
+    </div>
+  </div>
+  <div id="cam-status">✋ Gesture: OFF</div>
+  <button id="cam-btn">Enable Camera Gesture</button>
+</div>
+
+<div id="gesture-flash">
+  <span id="flash-icon">👆</span>
+  <div id="flash-text">SCROLL UP</div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">B<span>Tech</span> <span style="color:var(--accent)">CSE</span></div>
+  <ul class="nav-links">
+    <li><a href="#overview">Structure</a></li>
+    <li><a href="#subjects">Subjects</a></li>
+    <li><a href="#specialisations">Specialisations</a></li>
+    <li><a href="#careers">Careers</a></li>
+    <li><a href="#after">After B.Tech</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <div class="grid-bg"></div>
+  <div class="glow"></div>
+  <div class="hero-tag">// B.TECH COMPUTER SCIENCE & ENGINEERING — INDIA</div>
+  <h1 class="title">MASTER THE<em>DIGITAL FUTURE</em></h1>
+  <p class="sub">India's most in-demand engineering degree. Your complete guide to B.Tech CSE — what you study, which domain you specialise in, and every path that opens after graduation.</p>
+  <div class="stats">
+    <div><div class="stat-n">4</div><div class="stat-l">Year Course</div></div>
+    <div><div class="stat-n">8</div><div class="stat-l">Semesters</div></div>
+    <div><div class="stat-n">12+</div><div class="stat-l">Specialisations</div></div>
+    <div><div class="stat-n">∞</div><div class="stat-l">Career Paths</div></div>
+  </div>
+  <div class="scroll-hint"><div class="scroll-line"></div>SCROLL TO EXPLORE</div>
+</section>
+
+<!-- 01 Course Structure -->
+<div class="section" id="overview">
+  <div class="sec-head">
+    <div><div class="sec-num">// 01 — COURSE STRUCTURE</div><h2 class="sec-title">4-YEAR <em>ROADMAP</em></h2></div>
+  </div>
+  <div class="roadmap">
+    <div class="rm-item"><div class="rm-left"><div class="rm-dot"></div><div class="rm-line"></div></div><div class="rm-body"><div class="rm-year">YEAR 1 — FOUNDATION</div><div class="rm-t">Building the Base</div><div class="rm-d">Mathematics (Calculus, Linear Algebra, Discrete Math), Physics, Introduction to Programming (C/C++), Basic Electronics, Engineering Drawing, and Communication Skills. This year lays the logical and mathematical foundation for everything ahead.</div></div></div>
+    <div class="rm-item"><div class="rm-left"><div class="rm-dot"></div><div class="rm-line"></div></div><div class="rm-body"><div class="rm-year">YEAR 2 — CORE CS</div><div class="rm-t">Diving Into Computer Science</div><div class="rm-d">Data Structures & Algorithms, Object-Oriented Programming (Java/C++), Digital Logic & Computer Organisation, Probability & Statistics, Database Management Systems, and Operating Systems fundamentals. This is where real CS thinking begins.</div></div></div>
+    <div class="rm-item"><div class="rm-left"><div class="rm-dot"></div><div class="rm-line"></div></div><div class="rm-body"><div class="rm-year">YEAR 3 — DEPTH + SPECIALISATION</div><div class="rm-t">Going Deeper</div><div class="rm-d">Computer Networks, Theory of Computation, Compiler Design, Software Engineering, Electives begin (AI/ML, Web Dev, Cybersecurity, etc.), and your first internship. This year defines your technical identity and area of interest.</div></div></div>
+    <div class="rm-item"><div class="rm-left"><div class="rm-dot"></div></div><div class="rm-body"><div class="rm-year">YEAR 4 — PROJECT + PLACEMENT</div><div class="rm-t">Capstone & Launch</div><div class="rm-d">Major Project / Thesis, advanced electives, internship conversions, campus placements, and preparation for higher education (GATE, GRE, CAT, UPSC). This year is where it all comes together — from student to professional.</div></div></div>
+  </div>
+</div>
+
+<!-- 02 Core Subjects -->
+<div class="section-alt">
+  <div class="inner" id="subjects">
+    <div class="sec-head">
+      <div><div class="sec-num">// 02 — ACADEMICS</div><h2 class="sec-title">CORE <em>SUBJECTS</em></h2></div>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="card-icon">🧮</span><div class="card-title">Data Structures & Algorithms</div><p class="card-desc">The heart of CS. Arrays, linked lists, trees, graphs, sorting, searching, dynamic programming, and algorithm complexity. Mastery here is the gateway to top tech companies and competitive programming.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">Time Complexity</span><span class="t">Graph Algorithms</span><span class="t">Dynamic Programming</span><span class="t">Recursion</span><span class="t">Hashing</span></div></div>
+
+      <div class="card"><span class="card-icon">🖥️</span><div class="card-title">Operating Systems</div><p class="card-desc">How computers manage resources. Process management, scheduling, memory management, file systems, deadlocks, and concurrency. Essential for systems programming, backend roles, and kernel development.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">Process Scheduling</span><span class="t">Memory Management</span><span class="t">Concurrency</span><span class="t">File Systems</span><span class="t">Deadlocks</span></div></div>
+
+      <div class="card"><span class="card-icon">🗄️</span><div class="card-title">Database Management Systems</div><p class="card-desc">Relational databases, SQL, normalisation, transactions, indexing, and NoSQL concepts. Every modern application relies on databases — this subject is universally applicable across all software roles.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">SQL</span><span class="t">Normalisation</span><span class="t">Transactions & ACID</span><span class="t">Indexing</span><span class="t">NoSQL Basics</span></div></div>
+
+      <div class="card"><span class="card-icon">🌐</span><div class="card-title">Computer Networks</div><p class="card-desc">How the internet works — TCP/IP stack, HTTP, DNS, routing, subnetting, and network security. Critical for cloud computing, cybersecurity, DevOps, and backend engineering roles.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">TCP/IP Stack</span><span class="t">Routing Protocols</span><span class="t">DNS & HTTP</span><span class="t">Subnetting</span><span class="t">Network Security</span></div></div>
+
+      <div class="card"><span class="card-icon">🧠</span><div class="card-title">Artificial Intelligence</div><p class="card-desc">Search algorithms, knowledge representation, expert systems, planning, and introduction to machine learning. This core subject opens the door to the field transforming every industry in India and globally.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">Search Algorithms</span><span class="t">Heuristics</span><span class="t">Knowledge Representation</span><span class="t">Intro to ML</span></div></div>
+
+      <div class="card"><span class="card-icon">📐</span><div class="card-title">Theory of Computation</div><p class="card-desc">The mathematical foundations of CS — automata, formal languages, Turing machines, and computational complexity (P vs NP). Builds rigorous thinking about what computers can and cannot solve.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">Finite Automata</span><span class="t">Context-Free Grammars</span><span class="t">Turing Machines</span><span class="t">Complexity Classes</span></div></div>
+
+      <div class="card"><span class="card-icon">🔧</span><div class="card-title">Software Engineering</div><p class="card-desc">Building software that works at scale. SDLC models, Agile/Scrum, design patterns, UML, testing strategies, and project management. Bridges coding and real-world product development.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">Agile / Scrum</span><span class="t">Design Patterns</span><span class="t">Testing</span><span class="t">UML</span><span class="t">Version Control</span></div></div>
+
+      <div class="card"><span class="card-icon">⚙️</span><div class="card-title">Computer Organisation & Architecture</div><p class="card-desc">How CPUs work — instruction sets, pipelining, memory hierarchy, cache design, and parallel processing. Understanding hardware-software interaction makes you a better systems programmer.</p><div class="lbl">Key Topics</div><div class="tags"><span class="t">CPU Design</span><span class="t">Pipelining</span><span class="t">Cache & Memory Hierarchy</span><span class="t">Instruction Sets</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 03 Specialisations -->
+<div class="section" id="specialisations">
+  <div class="sec-head">
+    <div><div class="sec-num">// 03 — ELECTIVES & SPECIALISATIONS</div><h2 class="sec-title">PICK YOUR <em>DOMAIN</em></h2></div>
+    <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted)">12 DOMAINS</div>
+  </div>
+  <div class="cards">
+    <div class="card"><span class="card-icon">🤖</span><div class="card-title">Artificial Intelligence & ML</div><div class="tags"><span class="t-green">🔥 Hottest Domain 2024</span></div><p class="card-desc">Machine learning, deep learning, neural networks, NLP, computer vision, and reinforcement learning. The most in-demand CSE specialisation in India — powering everything from chatbots to autonomous vehicles.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Neural Networks</span><span class="t">TensorFlow/PyTorch</span><span class="t">NLP</span><span class="t">Computer Vision</span><span class="t">Reinforcement Learning</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Google</span><span class="t-cyan">Microsoft</span><span class="t-cyan">Amazon</span><span class="t-cyan">NVIDIA</span><span class="t-cyan">AI Startups</span></div></div>
+
+    <div class="card"><span class="card-icon">🔐</span><div class="card-title">Cybersecurity</div><div class="tags"><span class="t-green">🔥 High Demand</span></div><p class="card-desc">Ethical hacking, penetration testing, cryptography, network security, digital forensics, and cloud security. India's digital economy has an acute shortage of cybersecurity talent — salaries reflect this gap heavily.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Ethical Hacking</span><span class="t">Cryptography</span><span class="t">Pen Testing</span><span class="t">SOC Operations</span><span class="t">Digital Forensics</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">ISRO/DRDO</span><span class="t-cyan">Wipro CyberSec</span><span class="t-cyan">HCL</span><span class="t-cyan">IBM Security</span></div></div>
+
+    <div class="card"><span class="card-icon">☁️</span><div class="card-title">Cloud Computing & DevOps</div><div class="tags"><span class="t-green">🔥 High Demand</span></div><p class="card-desc">AWS, Azure, GCP, Docker, Kubernetes, CI/CD pipelines, and infrastructure as code. Every company is migrating to cloud — this specialisation puts you at the centre of India's IT transformation wave.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">AWS / Azure / GCP</span><span class="t">Docker & K8s</span><span class="t">CI/CD Pipelines</span><span class="t">Terraform</span><span class="t">Microservices</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Amazon</span><span class="t-cyan">Microsoft</span><span class="t-cyan">Infosys</span><span class="t-cyan">TCS Digital</span></div></div>
+
+    <div class="card"><span class="card-icon">📊</span><div class="card-title">Data Science & Analytics</div><div class="tags"><span class="t-green">🔥 High Demand</span></div><p class="card-desc">Statistical analysis, big data, data visualisation, predictive modelling, and business intelligence. Data scientists are among the highest-paid tech professionals in India, especially in fintech and e-commerce.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Python / R</span><span class="t">SQL & NoSQL</span><span class="t">Power BI / Tableau</span><span class="t">Spark / Hadoop</span><span class="t">Statistics</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Flipkart</span><span class="t-cyan">Zomato</span><span class="t-cyan">Razorpay</span><span class="t-cyan">Analytics Firms</span></div></div>
+
+    <div class="card"><span class="card-icon">🌐</span><div class="card-title">Full Stack Web Development</div><p class="card-desc">Front-end (React, Vue), back-end (Node.js, Django), databases, REST APIs, and deployment. Full-stack developers are the most universally employable CSE graduates — startups particularly love this profile.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">React / Vue.js</span><span class="t">Node.js / Django</span><span class="t">REST & GraphQL</span><span class="t">MongoDB</span><span class="t">Git</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Startups</span><span class="t-cyan">Accenture</span><span class="t-cyan">Capgemini</span><span class="t-cyan">Swiggy</span></div></div>
+
+    <div class="card"><span class="card-icon">📱</span><div class="card-title">Mobile App Development</div><p class="card-desc">Android (Kotlin), iOS (Swift), and cross-platform development (Flutter, React Native). With 700M+ smartphone users in India, mobile engineers have enormous market opportunity in fintech, edtech, and hyperlocal apps.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Flutter / React Native</span><span class="t">Kotlin / Swift</span><span class="t">Firebase</span><span class="t">REST APIs</span><span class="t">App Store Publishing</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">PhonePe</span><span class="t-cyan">CRED</span><span class="t-cyan">Zepto</span><span class="t-cyan">Fintech Startups</span></div></div>
+
+    <div class="card"><span class="card-icon">🕹️</span><div class="card-title">Game Development</div><p class="card-desc">Game design, Unity/Unreal Engine, 3D graphics, physics simulation, and AR/VR development. India's gaming industry grows at 28% annually — and globally, game dev combines deep CS skill with creative challenge.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Unity / Unreal Engine</span><span class="t">C# / C++</span><span class="t">3D Modelling</span><span class="t">VR / AR</span><span class="t">Game Physics</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Nazara Games</span><span class="t-cyan">nCore Games</span><span class="t-cyan">Ubisoft India</span><span class="t-cyan">EA / Activision</span></div></div>
+
+    <div class="card"><span class="card-icon">⛓️</span><div class="card-title">Blockchain & Web3</div><p class="card-desc">Distributed ledgers, smart contracts (Solidity), DeFi protocols, and consensus mechanisms. Blockchain engineers with strong CS fundamentals remain highly paid globally, regardless of market cycles.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Solidity</span><span class="t">Ethereum / Hyperledger</span><span class="t">Smart Contracts</span><span class="t">DeFi Protocols</span><span class="t">Cryptography</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">CoinDCX</span><span class="t-cyan">Polygon</span><span class="t-cyan">WazirX</span><span class="t-cyan">Global Web3 Firms</span></div></div>
+
+    <div class="card"><span class="card-icon">🤝</span><div class="card-title">Human-Computer Interaction & UI/UX</div><p class="card-desc">User research, interaction design, prototyping, usability testing, and cognitive psychology applied to interfaces. The bridge between engineering and design — product companies prize HCI-trained CSE grads above all.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Figma / Adobe XD</span><span class="t">Usability Testing</span><span class="t">User Research</span><span class="t">Accessibility</span><span class="t">Design Systems</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Google</span><span class="t-cyan">Meesho</span><span class="t-cyan">Razorpay</span><span class="t-cyan">Design Studios</span></div></div>
+
+    <div class="card"><span class="card-icon">🤖</span><div class="card-title">Robotics & Automation</div><p class="card-desc">Robot kinematics, ROS (Robot Operating System), embedded programming, sensor fusion, and autonomous systems. India's manufacturing automation wave and defence robotics programmes make this an exciting niche.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">ROS</span><span class="t">Arduino / Raspberry Pi</span><span class="t">Sensor Fusion</span><span class="t">Path Planning</span><span class="t">Computer Vision</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">ISRO</span><span class="t-cyan">DRDO</span><span class="t-cyan">Ola Electric</span><span class="t-cyan">Agri Robotics</span></div></div>
+
+    <div class="card"><span class="card-icon">📡</span><div class="card-title">Internet of Things (IoT)</div><p class="card-desc">Connecting the physical world to the internet — embedded systems, MQTT, edge computing, sensor networks, and smart city applications. India's Smart Cities Mission is driving enormous investment in this space.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Arduino / ESP32</span><span class="t">MQTT Protocol</span><span class="t">Edge Computing</span><span class="t">Cloud IoT Platforms</span><span class="t">Sensor Networks</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">Bosch India</span><span class="t-cyan">Tata Elxsi</span><span class="t-cyan">KPIT</span><span class="t-cyan">IoT Startups</span></div></div>
+
+    <div class="card"><span class="card-icon">🧬</span><div class="card-title">Bioinformatics</div><p class="card-desc">Applying CS to biological data — genome sequencing, protein structure prediction, drug discovery algorithms, and medical imaging AI. A niche but high-impact field at the intersection of life sciences and CS.</p><div class="lbl">What You'll Learn</div><div class="tags"><span class="t">Genomic Data Analysis</span><span class="t">Python for Biology</span><span class="t">ML in Drug Discovery</span><span class="t">BLAST / BioPython</span></div><hr class="d"><div class="lbl">Top Recruiters</div><div class="tags"><span class="t-cyan">CSIR Labs</span><span class="t-cyan">Biocon</span><span class="t-cyan">Strand LS</span><span class="t-cyan">Pharma R&D</span></div></div>
+  </div>
+</div>
+
+<!-- 04 Careers -->
+<div class="section-alt">
+  <div class="inner" id="careers">
+    <div class="sec-head">
+      <div><div class="sec-num">// 04 — CAREER PATHS</div><h2 class="sec-title">WHERE YOU <em>WORK</em></h2></div>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="card-icon">💼</span><div class="card-title">Software Development Engineer</div><p class="card-desc">The most common CSE career. Build products at companies like Google, Microsoft, Amazon, Flipkart, or hundreds of Indian startups. Roles span frontend, backend, full-stack, mobile, and systems engineering.</p><div class="lbl">Avg Starting Salary (India)</div><div class="tags"><span class="t-green">₹6–15 LPA (Tier 3) · ₹15–30 LPA (NIT) · ₹30–60+ LPA (IIT/IIIT)</span></div></div>
+
+      <div class="card"><span class="card-icon">📈</span><div class="card-title">Data Scientist / ML Engineer</div><p class="card-desc">Build predictive models, design ML pipelines, and extract business insights from data. One of the fastest-growing and highest-paying roles in India's tech ecosystem — especially in fintech, e-commerce, and healthtech.</p><div class="lbl">Avg Starting Salary (India)</div><div class="tags"><span class="t-green">₹10–25 LPA · Research roles up to ₹40+ LPA</span></div></div>
+
+      <div class="card"><span class="card-icon">🔒</span><div class="card-title">Cybersecurity Analyst / Ethical Hacker</div><p class="card-desc">Protect systems from threats. Roles include Pen Tester, SOC Analyst, Security Engineer, and Forensic Investigator. Government, defence, banking, and tech all hire aggressively — supply is far below demand.</p><div class="lbl">Avg Starting Salary (India)</div><div class="tags"><span class="t-green">₹6–18 LPA · Specialists earn ₹25–50 LPA</span></div></div>
+
+      <div class="card"><span class="card-icon">☁️</span><div class="card-title">Cloud / DevOps Engineer</div><p class="card-desc">Design and maintain cloud infrastructure, automate deployments, and ensure system reliability at scale. Cloud engineers with AWS/Azure certifications are among India's most in-demand tech professionals right now.</p><div class="lbl">Avg Starting Salary (India)</div><div class="tags"><span class="t-green">₹8–20 LPA · Senior roles ₹30–60 LPA</span></div></div>
+
+      <div class="card"><span class="card-icon">📦</span><div class="card-title">Product Manager</div><p class="card-desc">Lead the vision, strategy, and roadmap of tech products. CSE background gives you technical credibility non-technical PMs lack. Usually entered after 2–4 years of engineering experience, or directly via MBA.</p><div class="lbl">Avg Starting Salary (India)</div><div class="tags"><span class="t-green">₹15–40 LPA (APM roles at top product companies)</span></div></div>
+
+      <div class="card"><span class="card-icon">🏛️</span><div class="card-title">Government / PSU / Research</div><p class="card-desc">ISRO, DRDO, C-DAC, ECIL, BSNL, and other organisations hire CSE graduates via GATE. Offers stability, national service, and exciting research in defence, space, and national digital infrastructure.</p><div class="lbl">Selection Route</div><div class="tags"><span class="t-green">GATE Score → PSU Direct Recruitment</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 05 After B.Tech -->
+<div class="section" id="after">
+  <div class="sec-head">
+    <div><div class="sec-num">// 05 — WHAT COMES NEXT</div><h2 class="sec-title">AFTER <em>B.TECH</em></h2></div>
+  </div>
+  <div class="after-grid">
+    <div class="ac"><div class="ac-icon">🎓</div><div class="ac-title">M.Tech in India</div><div class="ac-desc">Pursue M.Tech at IITs, NITs, or IIITs via GATE score. Specialise in AI/ML, Systems, Networks, or VLSI. Often comes with a GATE scholarship (₹12,400/month). Opens doors to academia, research, and senior tech roles at premium packages.</div></div>
+
+    <div class="ac"><div class="ac-icon">✈️</div><div class="ac-title">MS / PhD Abroad</div><div class="ac-desc">Apply to universities in the USA (Stanford, MIT, CMU, UIUC), Canada, Germany, or UK via GRE + TOEFL. Top MS programmes offer Teaching/Research Assistantships covering tuition + living costs. Leads to global tech careers and research positions.</div></div>
+
+    <div class="ac"><div class="ac-icon">💼</div><div class="ac-title">MBA (IIM & Top B-Schools)</div><div class="ac-desc">CSE graduates are among the most preferred MBA applicants. Crack CAT for IIMs or GMAT for ISB/global MBAs. Opens paths to consulting (McKinsey, BCG), investment banking, and tech product management at senior levels.</div></div>
+
+    <div class="ac"><div class="ac-icon">🚀</div><div class="ac-title">Entrepreneurship / Startup</div><div class="ac-desc">Build your own startup. India's startup ecosystem is the 3rd largest globally — incubators at IITs and NITs offer funding and mentorship. Many Indian unicorns (Flipkart, Zomato, CRED) were founded by CSE graduates.</div></div>
+
+    <div class="ac"><div class="ac-icon">📜</div><div class="ac-title">GATE → PSU / Research Labs</div><div class="ac-desc">GATE opens doors to M.Tech at IITs and direct PSU recruitment at ISRO, DRDO, ECIL, BSNL, and more. Government roles offer exceptional job security, research opportunities, and deep national impact.</div></div>
+
+    <div class="ac"><div class="ac-icon">🏛️</div><div class="ac-title">Civil Services (IAS / IES)</div><div class="ac-desc">CSE engineers can appear for UPSC Civil Services (IAS/IPS/IFS) or the Indian Engineering Services (IES) exam, which places selected candidates into technical government departments at Group A officer level.</div></div>
+
+    <div class="ac"><div class="ac-icon">📱</div><div class="ac-title">Freelancing & Remote Work</div><div class="ac-desc">Build a global client base on Upwork, Toptal, or Fiverr. Senior CSE freelancers earn ₹3,000–₹10,000/hour for specialised work. Remote jobs at US/EU companies via platforms like Turing offer global salaries from India.</div></div>
+
+    <div class="ac"><div class="ac-icon">📚</div><div class="ac-title">Teaching & Academia</div><div class="ac-desc">Pursue M.Tech or PhD and join academia as an Assistant Professor. AICTE-approved colleges require NET/SET alongside postgraduate qualifications. IITs and NITs require PhD + strong research publication record.</div></div>
+
+    <div class="ac"><div class="ac-icon">🎖️</div><div class="ac-title">Defence / Armed Forces (Technical)</div><div class="ac-desc">Join the Indian Army, Navy, or Air Force in technical officer roles via UPSC CDS or Short Service Commission. Technical branches leverage your CSE background in signals intelligence and cyber warfare units.</div></div>
+  </div>
+</div>
+
+<footer>
+  <div style="font-size:22px;margin-bottom:12px">💻</div>
+  BTech CSE India · Complete Guide to India's Premier Engineering Degree
+  <br><br>
+  <span style="font-size:10px;opacity:0.4">Enable gesture scroll (bottom-right) · Wave your hand ↑↓ in front of the camera to scroll</span>
+</footer>
+
+<script>
+// ── Progress bar ─────────────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+});
+
+// ── Camera Gesture Scroll ─────────────────────────────────────────────────────
+// APPROACH: Zone-based motion voting
+//   - Split frame into TOP half and BOTTOM half
+//   - If motion is mostly in TOP zone   → hand is high → was just in bottom → scrolled UP
+//   - Track where the motion WAS vs where it IS now across frames
+//   - Much more reliable than centroid history alone
+
+const camBtn    = document.getElementById('cam-btn');
+const camBox    = document.getElementById('cam-box');
+const camScan   = document.getElementById('cam-scan');
+const camStatus = document.getElementById('cam-status');
+const video     = document.getElementById('webcam');
+const ovCanvas  = document.getElementById('ov-canvas');
+const ovCtx     = ovCanvas.getContext('2d');
+const dirBar    = document.getElementById('dir-bar');
+const daUp      = document.getElementById('da-up');
+const daDn      = document.getElementById('da-dn');
+const flash     = document.getElementById('gesture-flash');
+const fIcon     = document.getElementById('flash-icon');
+const fText     = document.getElementById('flash-text');
+
+// Larger canvas = more detail = better detection
+const proc  = document.createElement('canvas');
+proc.width  = 120;
+proc.height = 90;
+const pCtx  = proc.getContext('2d', { willReadFrequently: true });
+
+// Tuned for real-world use — very sensitive
+const DIFF_THRESH = 20;    // low = picks up subtle motion
+const MIN_PIXELS  = 30;    // low = triggers even with small hand
+const COOLDOWN_MS = 700;   // ms gap between scroll triggers
+const SCROLL_PX   = 600;   // total px to travel per gesture
+
+let running      = false;
+let rafId        = null;
+let prevData     = null;
+let lastScrollAt = 0;
+let flashTimer   = null;
+
+// Centroid Y positions over last N frames
+const POS_BUF  = [];
+const BUF_SIZE = 12;
+
+// ── smooth inertia scroll ─────────────────────────────────────────────────────
+// Instead of window.scrollBy (instant jump), we animate with an ease-out curve
+// so the scroll glides to a stop naturally.
+let scrollTarget  = 0;   // absolute Y we want to reach
+let scrollCurrent = 0;   // current animated position (mirrors window.scrollY)
+let scrollRaf     = null;
+
+function smoothScrollTo(targetY) {
+  // Cancel any ongoing scroll animation
+  if (scrollRaf) cancelAnimationFrame(scrollRaf);
+
+  const startY    = window.scrollY;
+  const distance  = targetY - startY;
+  const duration  = 700;   // ms — longer = more glide
+  const startTime = performance.now();
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function step(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased    = easeOutCubic(progress);
+    window.scrollTo(0, startY + distance * eased);
+    if (progress < 1) scrollRaf = requestAnimationFrame(step);
+  }
+
+  scrollRaf = requestAnimationFrame(step);
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function showFlash(icon, text) {
+  fIcon.textContent = icon;
+  fText.textContent = text;
+  flash.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => flash.classList.remove('show'), 700);
+}
+
+function setStatus(text, color = 'var(--accent)') {
+  camStatus.textContent = text;
+  camStatus.style.color = color;
+  camStatus.style.borderColor = color;
+}
+
+function highlightArrow(dir) {
+  daUp.classList.toggle('active', dir === 'up');
+  daDn.classList.toggle('active', dir === 'down');
+  setTimeout(() => { daUp.classList.remove('active'); daDn.classList.remove('active'); }, 500);
+}
+
+// ── main detection loop ───────────────────────────────────────────────────────
+function detect() {
+  if (!running) return;
+  rafId = requestAnimationFrame(detect);
+
+  // Capture frame (NOT mirrored for processing — mirror only for display)
+  pCtx.drawImage(video, 0, 0, proc.width, proc.height);
+  const curr = pCtx.getImageData(0, 0, proc.width, proc.height);
+
+  ovCtx.clearRect(0, 0, ovCanvas.width, ovCanvas.height);
+
+  if (!prevData) { prevData = curr; return; }
+
+  const W  = proc.width, H = proc.height;
+  const sX = ovCanvas.width  / W;
+  const sY = ovCanvas.height / H;
+
+  let sumY = 0, sumX = 0, count = 0;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const diff =
+        Math.abs(curr.data[i]   - prevData.data[i])   +
+        Math.abs(curr.data[i+1] - prevData.data[i+1]) +
+        Math.abs(curr.data[i+2] - prevData.data[i+2]);
+
+      if (diff > DIFF_THRESH) {
+        sumX += x; sumY += y; count++;
+        const a = Math.min(diff / 150, 1);
+        ovCtx.fillStyle = `rgba(0,229,255,${a * 0.9})`;
+        ovCtx.fillRect(x * sX, y * sY, sX + 1, sY + 1);
+      }
+    }
+  }
+
+  // Always update prev
+  prevData = curr;
+
+  if (count < MIN_PIXELS) {
+    // No significant motion — clear buffer so stale data doesn't influence
+    POS_BUF.length = 0;
+    return;
+  }
+
+  // Motion centroid
+  const cy = sumY / count;   // 0 = top, H = bottom (normalised below)
+  const cx = sumX / count;
+
+  // Draw centroid indicator on overlay
+  const dx = (W - cx) * sX;  // mirror X for display
+  const dy = cy * sY;
+  ovCtx.strokeStyle = '#a8ff3e';
+  ovCtx.lineWidth   = 2.5;
+  ovCtx.beginPath(); ovCtx.arc(dx, dy, 13, 0, Math.PI * 2); ovCtx.stroke();
+  ovCtx.beginPath(); ovCtx.moveTo(dx-18,dy); ovCtx.lineTo(dx+18,dy); ovCtx.stroke();
+  ovCtx.beginPath(); ovCtx.moveTo(dx,dy-18); ovCtx.lineTo(dx,dy+18); ovCtx.stroke();
+
+  // Normalised centroid: 0.0 = top, 1.0 = bottom
+  const normY = cy / H;
+  POS_BUF.push(normY);
+  if (POS_BUF.length > BUF_SIZE) POS_BUF.shift();
+
+  if (POS_BUF.length < 6) return;  // need enough frames
+
+  // Compare first third vs last third of buffer for direction
+  const third  = Math.floor(POS_BUF.length / 3);
+  const early  = POS_BUF.slice(0, third).reduce((a,b)=>a+b,0) / third;
+  const late   = POS_BUF.slice(-third).reduce((a,b)=>a+b,0) / third;
+  const delta  = late - early;   // positive = moved DOWN, negative = moved UP
+  const now    = Date.now();
+
+  // 0.08 normalised = ~7px on a 90px canvas — easily achieved with hand swipe
+  if (Math.abs(delta) > 0.08 && (now - lastScrollAt) > COOLDOWN_MS) {
+    lastScrollAt = now;
+    POS_BUF.length = 0;   // reset so same swipe doesn't re-trigger
+
+    if (delta < 0) {
+      smoothScrollTo(window.scrollY - SCROLL_PX);
+      showFlash('👆', 'SCROLL UP');
+      highlightArrow('up');
+      setStatus('⬆ Scrolling UP', '#a8ff3e');
+      setTimeout(() => setStatus('🟢 ACTIVE — wave hand ↑↓', '#a8ff3e'), 900);
+    } else {
+      smoothScrollTo(window.scrollY + SCROLL_PX);
+      showFlash('👇', 'SCROLL DOWN');
+      highlightArrow('down');
+      setStatus('⬇ Scrolling DOWN', '#a8ff3e');
+      setTimeout(() => setStatus('🟢 ACTIVE — wave hand ↑↓', '#a8ff3e'), 900);
+    }
+  }
+}
+
+// ── button toggle ─────────────────────────────────────────────────────────────
+camBtn.addEventListener('click', async () => {
+  if (running) {
+    // --- STOP ---
+    running = false;
+    cancelAnimationFrame(rafId);
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+    prevData = null; history = [];
+    ovCtx.clearRect(0, 0, ovCanvas.width, ovCanvas.height);
+    camBox.style.display   = 'none';
+    camScan.style.display  = 'none';
+    dirBar.style.display   = 'none';
+    camBtn.textContent     = 'Enable Camera Gesture';
+    setStatus('✋ Gesture: OFF');
+    return;
+  }
+
+  // --- START ---
+  camBtn.textContent = 'Starting…';
+  camBtn.disabled    = true;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: 'user' }
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    // Sync overlay to rendered cam-box size
+    ovCanvas.width  = camBox.clientWidth  || 200;
+    ovCanvas.height = camBox.clientHeight || 150;
+
+    running = true;
+    prevData = null; history = [];
+
+    camBox.style.display  = 'block';
+    camScan.style.display = 'block';
+    dirBar.style.display  = 'flex';
+    camBtn.textContent    = 'Disable Gesture';
+    camBtn.disabled       = false;
+    setStatus('🟢 ACTIVE — wave hand ↑↓', '#a8ff3e');
+
+    detect();
+
+  } catch (err) {
+    camBtn.textContent = 'Enable Camera Gesture';
+    camBtn.disabled    = false;
+    // Give clear instructions based on error type
+    if (err.name === 'NotAllowedError') {
+      setStatus('❌ Camera blocked — allow in browser settings', '#ff5722');
+      alert(
+        '📷 Camera Permission Required\n\n' +
+        'To use gesture scroll:\n' +
+        '1. Download this HTML file to your computer\n' +
+        '2. Open it in Chrome or Firefox\n' +
+        '3. Click "Allow" when browser asks for camera access\n\n' +
+        'Camera access is blocked in embedded/sandboxed viewers.'
+      );
+    } else {
+      setStatus('❌ ' + err.message, '#ff5722');
+    }
+    console.error(err);
+  }
+});
+
+</script>
+</body>
+</html>
